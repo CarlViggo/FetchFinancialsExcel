@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
 import os
 import sys
 import tempfile
 import pandas as pd
 from unittest.mock import patch, Mock
-
 
 def test_imports():
     print("Testing imports...")
@@ -17,7 +15,6 @@ def test_imports():
     except ImportError as e:
         print(f"Import error: {e}")
         return False
-
 
 def test_cli_help():
     print("Testing CLI help...")
@@ -36,7 +33,6 @@ def test_cli_help():
     except Exception as e:
         print(f"CLI test error: {e}")
         return False
-
 
 def test_excel_processing():
     print("Testing Excel processing...")
@@ -70,14 +66,12 @@ def test_excel_processing():
                 print(f"Excel processing failed. Got: {companies}, {tickers}")
                 result = False
         
-        # Cleanup
         os.unlink(tmp.name)
         return result
         
     except Exception as e:
         print(f"Excel processing error: {e}")
         return False
-
 
 def test_api_key_handling():
     print("Testing API key handling...")
@@ -100,7 +94,6 @@ def test_api_key_handling():
     except Exception as e:
         print(f"API key handling error: {e}")
         return False
-
 
 def test_data_fetching_mock():
     print("Testing data fetching (mocked)...")
@@ -255,7 +248,7 @@ def test_complete_workflow():
 
 def run_all_tests():
     print("Running fetch-fundamental-data package tests")
-    print("=" * 50)
+    print("===========================================")
     
     tests = [
         test_imports,
@@ -286,7 +279,6 @@ def run_all_tests():
     else:
         print(" Some tests failed. Please review before pushing.")
         return False
-
 
 if __name__ == "__main__":
     success = run_all_tests()

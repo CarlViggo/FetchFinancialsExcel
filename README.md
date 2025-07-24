@@ -16,7 +16,7 @@ A Python package for fetching and analyzing fundamental financial data using the
 
 ## Installation
 
-### From PyPI (when published)
+### From PyPI
 ```bash
 pip install fetch-fundamental-data
 ```
