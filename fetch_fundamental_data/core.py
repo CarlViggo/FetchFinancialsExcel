@@ -1,7 +1,3 @@
-"""
-Core functionality for fetching fundamental financial data.
-"""
-
 import os
 import pandas as pd
 from datetime import datetime
@@ -17,19 +13,10 @@ class FundamentalDataFetcher:
         self.api_key = api_key
         self.current_date = datetime.today().strftime("%Y-%m-%d")
         
-        # Set the API key in the extraction module
+        # API key is set in the extraction module
         eodh.API_KEY = api_key
     
     def extract_tickers_from_excel(self, file_path: str) -> Tuple[List[str], List[str]]:
-        """
-        Extract company names and tickers from an Excel file.
-        
-        Args:
-            file_path (str): Path to Excel file containing tickers
-            
-        Returns:
-            Tuple[List[str], List[str]]: Company names and corresponding tickers
-        """
         df = pd.read_excel(file_path, header=None)
         tickers = []
         company_list = []
@@ -51,15 +38,6 @@ class FundamentalDataFetcher:
         return company_list, tickers
     
     def fetch_company_data(self, company_ticker: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """
-        Wrapper for fetching all data for a single company.
-        
-        Args:
-            company_ticker (str): Stock ticker symbol
-            
-        Returns:
-            Tuple[Dict[str, Any], Dict[str, Any]]: Combined indicators and other data
-        """
         # Fetch fundamental and price data
         data = eodh.fetch_fundamentals(company_ticker)
         price_data = eodh.fetch_price_data(company_ticker)
@@ -172,17 +150,6 @@ class FundamentalDataFetcher:
         return combined, other
     
     def add_company_data(self, data_df: pd.DataFrame, company_name: str, company_ticker: str) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-        """
-        Add company data to dataframe.
-        
-        Args:
-            data_df (pd.DataFrame): Existing dataframe
-            company_name (str): Company name
-            company_ticker (str): Stock ticker
-            
-        Returns:
-            Tuple[pd.DataFrame, Dict[str, Any]]: Updated dataframe and separate data
-        """
         company_data = {
             'Bolag': company_name,
             'Ticker': company_ticker
@@ -209,17 +176,6 @@ class FundamentalDataFetcher:
         return data_df, company_data_separate
     
     def fetch_all_data(self, company_list: List[str], ticker_list: List[str], max_workers: int = 10) -> Tuple[pd.DataFrame, List[Dict[str, Any]]]:
-        """
-        Concurrently fetch data for all companies.
-        
-        Args:
-            company_list (List[str]): List of company names
-            ticker_list (List[str]): List of ticker symbols
-            max_workers (int): Maximum number of concurrent workers
-            
-        Returns:
-            Tuple[pd.DataFrame, List[Dict[str, Any]]]: Combined dataframe and separate data
-        """
         data_df = pd.DataFrame()
         separate_data_list = []
 
@@ -240,16 +196,6 @@ class FundamentalDataFetcher:
         return data_df, separate_data_list
     
     def analyze_data(self, df: pd.DataFrame, separate_data_list: List[Dict[str, Any]]) -> pd.DataFrame:
-        """
-        Perform financial analysis on the fetched data.
-        
-        Args:
-            df (pd.DataFrame): DataFrame with financial data
-            separate_data_list (List[Dict[str, Any]]): Additional data for analysis
-            
-        Returns:
-            pd.DataFrame: DataFrame with analysis results
-        """
         # Apply Greenblatt formula
         df_analyzed = analyse.greenblatt_formula(df)
         
@@ -265,14 +211,6 @@ class FundamentalDataFetcher:
         return df_analyzed
     
     def process_excel_file(self, input_file: str, output_file: str, max_workers: int = 10) -> None:
-        """
-        Main method to process an Excel file with tickers and output financial analysis.
-        
-        Args:
-            input_file (str): Path to input Excel file with tickers
-            output_file (str): Path to output Excel file for results
-            max_workers (int): Maximum number of concurrent workers
-        """
         print(f"Processing file: {input_file}")
         
         # Extract tickers from Excel file

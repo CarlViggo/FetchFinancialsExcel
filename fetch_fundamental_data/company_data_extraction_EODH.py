@@ -5,7 +5,7 @@ import concurrent.futures
 import statistics
 
 # =============== Globals ===============
-API_KEY = None  # Will be set by the FundamentalDataFetcher class
+API_KEY = None  # set by the FundamentalDataFetcher class
 now = datetime.datetime.today()
 CURRENT_YEAR = now.strftime("%Y")
 # ========================================

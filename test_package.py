@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""
-Run this before pushing to validate core functionality.
-
-This script tests:
-- Package imports and CLI functionality
-- Excel file processing
-- API key handling
-- Data fetching with mocked API calls
-- Analysis functions (Greenblatt formula, etc.)
-- Complete end-to-end workflow
-
-Usage: python test_package.py
-Returns: Exit code 0 if all tests pass, 1 if any fail
-"""
-
 import os
 import sys
 import tempfile
@@ -22,8 +7,7 @@ from unittest.mock import patch, Mock
 
 
 def test_imports():
-    """Test that all imports work correctly."""
-    print("🔍 Testing imports...")
+    print("Testing imports...")
     
     try:
         from fetch_fundamental_data import FundamentalDataFetcher
@@ -36,8 +20,7 @@ def test_imports():
 
 
 def test_cli_help():
-    """Test that CLI help works."""
-    print("🔍 Testing CLI help...")
+    print("Testing CLI help...")
     
     try:
         import subprocess
@@ -56,8 +39,7 @@ def test_cli_help():
 
 
 def test_excel_processing():
-    """Test Excel file reading functionality."""
-    print("🔍 Testing Excel processing...")
+    print("Testing Excel processing...")
     
     try:
         from fetch_fundamental_data import FundamentalDataFetcher
@@ -98,8 +80,7 @@ def test_excel_processing():
 
 
 def test_api_key_handling():
-    """Test API key handling."""
-    print("🔍 Testing API key handling...")
+    print("Testing API key handling...")
     
     try:
         from fetch_fundamental_data import FundamentalDataFetcher
@@ -122,8 +103,7 @@ def test_api_key_handling():
 
 
 def test_data_fetching_mock():
-    """Test data fetching with mocked API calls."""
-    print("🔍 Testing data fetching (mocked)...")
+    print("Testing data fetching (mocked)...")
     
     try:
         from fetch_fundamental_data import FundamentalDataFetcher
@@ -187,10 +167,8 @@ def test_data_fetching_mock():
         print(f"Data fetching error: {e}")
         return False
 
-
 def test_analysis_functions():
-    """Test data analysis functions."""
-    print("🔍 Testing analysis functions...")
+    print("Testing analysis functions...")
     
     try:
         from fetch_fundamental_data import data_analysis
@@ -219,8 +197,7 @@ def test_analysis_functions():
 
 
 def test_complete_workflow():
-    """Test the complete workflow with mocked data."""
-    print("🔍 Testing complete workflow...")
+    print("Testing complete workflow...")
     
     try:
         from fetch_fundamental_data import FundamentalDataFetcher
@@ -276,9 +253,7 @@ def test_complete_workflow():
         print(f"Complete workflow error: {e}")
         return False
 
-
 def run_all_tests():
-    """Run all tests and return overall result."""
     print("Running fetch-fundamental-data package tests")
     print("=" * 50)
     
@@ -306,7 +281,7 @@ def run_all_tests():
     print(f"Test Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All tests passed! Package is ready for use.")
+        print("All tests passed! Package is ready for use.")
         return True
     else:
         print(" Some tests failed. Please review before pushing.")

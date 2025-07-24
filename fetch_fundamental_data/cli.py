@@ -1,7 +1,3 @@
-"""
-Command-line interface for the Fetch Fundamental Data package.
-"""
-
 import argparse
 import sys
 import os
@@ -11,30 +7,13 @@ from .core import FundamentalDataFetcher
 
 
 def validate_api_key(api_key: str) -> bool:
-    """
-    Basic validation for API key format.
-    
-    Args:
-        api_key (str): API key to validate
-        
-    Returns:
-        bool: True if API key appears valid
-    """
     if not api_key or len(api_key) < 10:
         return False
     return True
 
 
 def validate_excel_file(file_path: str) -> bool:
-    """
-    Validate that the Excel file exists and has correct extension.
-    
-    Args:
-        file_path (str): Path to Excel file
-        
-    Returns:
-        bool: True if file is valid
-    """
+
     if not os.path.exists(file_path):
         print(f"Error: File '{file_path}' does not exist.")
         return False
@@ -130,10 +109,10 @@ Input Excel file format:
             max_workers=args.workers
         )
         
-        print(f"\n✅ Success! Results saved to: {args.output}")
+        print(f"\n Success! Results saved to: {args.output}")
         
     except Exception as e:
-        print(f"\n❌ Error processing file: {e}")
+        print(f"\n Error processing file: {e}")
         sys.exit(1)
 
 

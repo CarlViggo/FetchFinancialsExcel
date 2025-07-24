@@ -104,7 +104,7 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
@@ -136,6 +136,11 @@ results*.xlsx
 # Test files
 test_output*.xlsx
 test_results*.xlsx
+results.xlsx
+sample_tickers.xlsx
+
+# Build artifacts
+*.egg-info/
 
 # Example output
 examples/output/ 
