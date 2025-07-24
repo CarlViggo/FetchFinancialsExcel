@@ -5,12 +5,10 @@ from pathlib import Path
 
 from .core import FundamentalDataFetcher
 
-
 def validate_api_key(api_key: str) -> bool:
     if not api_key or len(api_key) < 10:
         return False
     return True
-
 
 def validate_excel_file(file_path: str) -> bool:
 
@@ -24,27 +22,11 @@ def validate_excel_file(file_path: str) -> bool:
     
     return True
 
-
 def main():
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
         description="Fetch fundamental financial data for stocks listed in an Excel file.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Basic usage
-  fetch-fundamentals --api-key YOUR_API_KEY --input tickers.xlsx --output results.xlsx
-  
-  # With custom number of workers
-  fetch-fundamentals --api-key YOUR_API_KEY --input tickers.xlsx --output results.xlsx --workers 5
-  
-Input Excel file format:
-  The Excel file should have two columns:
-  - Column A: Company names
-  - Column B: Ticker symbols (e.g., AAPL, GOOGL.US, DANSKE.CO)
-  - First row is treated as header and will be skipped
-        """
-    )
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     
     parser.add_argument(
         '--api-key',
@@ -114,7 +96,6 @@ Input Excel file format:
     except Exception as e:
         print(f"\n Error processing file: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main() 

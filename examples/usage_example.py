@@ -1,15 +1,8 @@
-#!/usr/bin/env python3
-"""
-Example usage of the fetch-fundamental-data package.
-"""
-
 import os
 import pandas as pd
 from fetch_fundamental_data import FundamentalDataFetcher
 
-
 def create_sample_excel():
-    """Create a sample Excel file with ticker data."""
     data = [
         ['Company Name', 'Ticker'],
         ['Apple Inc', 'AAPL'],
@@ -23,20 +16,18 @@ def create_sample_excel():
     df.to_excel('sample_tickers.xlsx', index=False, header=False)
     print("Created sample_tickers.xlsx")
 
-
 def example_programmatic_usage():
-    """Example of using the package programmatically."""
     print("\nExample: Programmatic Usage")
     print("=" * 50)
     
     # replace this with your API key
-    api_key = " 6825938e38a180.67714314"
+    api_key = "YOUR API KEY HERE"
     
     try:
-        # Initialize the fetcher
+        # initialize the fetcher
         fetcher = FundamentalDataFetcher(api_key=api_key)
         
-        # Extract tickers from Excel file
+        # extract tickers from Excel file
         company_list, ticker_list = fetcher.extract_tickers_from_excel("sample_tickers.xlsx")
         print(f"Found {len(ticker_list)} tickers: {ticker_list}")
         
@@ -50,9 +41,7 @@ def example_programmatic_usage():
     except Exception as e:
         print(f"Error: {e}")
 
-
 def example_cli_usage():
-    """Show CLI usage examples."""
     print("\n  Example: Command Line Usage")
     print("=" * 50)
     
@@ -69,11 +58,11 @@ def example_cli_usage():
 
 if __name__ == "__main__":
     print("Fetch Fundamental Data - Usage Examples")
-    print("=" * 50)
+    print("=======================================")
     
-    # Create sample file
+    # create sample file
     create_sample_excel()
     
-    # Show examples
+    # show examples
     example_cli_usage()
     example_programmatic_usage()

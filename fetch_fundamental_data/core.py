@@ -12,11 +12,9 @@ class FundamentalDataFetcher:
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.current_date = datetime.today().strftime("%Y-%m-%d")
-        
-        # API key is set in the extraction module
         eodh.API_KEY = api_key
     
-    def extract_tickers_from_excel(self, file_path: str) -> Tuple[List[str], List[str]]:
+    def extract_tickers_from_excel(self, file_path):
         df = pd.read_excel(file_path, header=None)
         tickers = []
         company_list = []
@@ -37,7 +35,7 @@ class FundamentalDataFetcher:
                 
         return company_list, tickers
     
-    def fetch_company_data(self, company_ticker: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def fetch_company_data(self, company_ticker):
         # Fetch fundamental and price data
         data = eodh.fetch_fundamentals(company_ticker)
         price_data = eodh.fetch_price_data(company_ticker)
@@ -195,7 +193,7 @@ class FundamentalDataFetcher:
 
         return data_df, separate_data_list
     
-    def analyze_data(self, df: pd.DataFrame, separate_data_list: List[Dict[str, Any]]) -> pd.DataFrame:
+    def analyze_data(self, df, separate_data_list):
         # Apply Greenblatt formula
         df_analyzed = analyse.greenblatt_formula(df)
         
