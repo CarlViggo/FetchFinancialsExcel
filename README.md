@@ -38,7 +38,7 @@ pip install -e .
 
 Create an Excel file (`.xlsx`) with the following format:
 
-![Alt text](examples/figures/ticker_list_example.png)
+<img src="examples/figures/ticker_list_example.png" alt="Alt text" width="200"/>
 
 **Important Notes:**
 - First Column: Company names
