@@ -2,4 +2,4 @@ include README.md
 include LICENSE
 include requirements.txt
 include examples/*.xlsx
-recursive-include fetch_fundamental_data *.py 
+recursive-include fetchfinancialsexcel *.py 

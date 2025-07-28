@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from fetch_fundamental_data import FundamentalDataFetcher
+from fetchfinancialsexcel import FundamentalDataFetcher
 
 def create_sample_excel():
     data = [
@@ -46,15 +46,15 @@ def example_cli_usage():
     print("=" * 50)
     
     print("Basic usage:")
-    print("fetch-fundamentals --api-key YOUR_API_KEY --input sample_tickers.xlsx --output results.xlsx")
+    print("fetch-financials-excel --api-key YOUR_API_KEY --input sample_tickers.xlsx --output results.xlsx")
     print()
     
     print("With custom workers:")
-    print("fetch-fundamentals --api-key YOUR_API_KEY -i sample_tickers.xlsx -o results.xlsx -w 5")
+    print("fetch-financials-excel --api-key YOUR_API_KEY -i sample_tickers.xlsx -o results.xlsx -w 5")
     print()
     
     print("Get help:")
-    print("fetch-fundamentals --help")
+    print("fetch-financials-excel --help")
 
 if __name__ == "__main__":
     print("Fetch Fundamental Data - Usage Examples")

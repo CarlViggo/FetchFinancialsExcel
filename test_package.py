@@ -8,12 +8,12 @@ def test_imports():
     print("Testing imports...")
     
     try:
-        from fetch_fundamental_data import FundamentalDataFetcher
-        from fetch_fundamental_data import cli
-        print("All imports successful")
+        from fetchfinancialsexcel import FundamentalDataFetcher
+        from fetchfinancialsexcel import cli
+        print("✅ All imports successful")
         return True
     except ImportError as e:
-        print(f"Import error: {e}")
+        print(f"❌ Import error: {e}")
         return False
 
 def test_cli_help():
@@ -21,7 +21,7 @@ def test_cli_help():
     
     try:
         import subprocess
-        result = subprocess.run(['fetch-fundamentals', '--help'], 
+        result = subprocess.run(['fetch-financials-excel', '--help'], 
                               capture_output=True, text=True, timeout=10)
         
         if result.returncode == 0 and 'EODHD API key' in result.stdout:
@@ -38,7 +38,7 @@ def test_excel_processing():
     print("Testing Excel processing...")
     
     try:
-        from fetch_fundamental_data import FundamentalDataFetcher
+        from fetchfinancialsexcel import FundamentalDataFetcher
         
         # Create test Excel file
         test_data = [
@@ -77,8 +77,8 @@ def test_api_key_handling():
     print("Testing API key handling...")
     
     try:
-        from fetch_fundamental_data import FundamentalDataFetcher
-        import fetch_fundamental_data.company_data_extraction_EODH as eodh
+        from fetchfinancialsexcel import FundamentalDataFetcher
+        import fetchfinancialsexcel.company_data_extraction_EODH as eodh
         
         # Test setting API key
         test_key = "test_api_key_123"
@@ -111,9 +111,9 @@ def test_data_fetching_mock():
             {"date": "2024-01-15", "adjusted_close": 185.64}
         ]
         
-        with patch('fetch_fundamental_data.company_data_extraction_EODH.fetch_fundamentals') as mock_fund, \
-             patch('fetch_fundamental_data.company_data_extraction_EODH.fetch_price_data') as mock_price, \
-             patch('fetch_fundamental_data.company_data_extraction_EODH.real_time_price') as mock_realtime:
+        with patch('fetchfinancialsexcel.company_data_extraction_EODH.fetch_fundamentals') as mock_fund, \
+             patch('fetchfinancialsexcel.company_data_extraction_EODH.fetch_price_data') as mock_price, \
+             patch('fetchfinancialsexcel.company_data_extraction_EODH.real_time_price') as mock_realtime:
             
             # Setup mocks
             mock_fund.return_value = mock_fundamental_data
@@ -130,13 +130,13 @@ def test_data_fetching_mock():
             
             patches = []
             for func_name in extraction_functions:
-                patcher = patch(f'fetch_fundamental_data.company_data_extraction_EODH.{func_name}')
+                patcher = patch(f'fetchfinancialsexcel.company_data_extraction_EODH.{func_name}')
                 mock_func = patcher.start()
                 mock_func.return_value = {}
                 patches.append(patcher)
             
             # Mock conservative analysis
-            with patch('fetch_fundamental_data.data_analysis.conservative') as mock_conservative:
+            with patch('fetchfinancialsexcel.data_analysis.conservative') as mock_conservative:
                 mock_conservative.return_value = {"volatility": 0.25}
                 
                 # Test fetching
@@ -164,7 +164,7 @@ def test_analysis_functions():
     print("Testing analysis functions...")
     
     try:
-        from fetch_fundamental_data import data_analysis
+        from fetchfinancialsexcel import data_analysis
         
         # Create test dataframe - using current year for PE column
         from datetime import datetime
@@ -193,7 +193,7 @@ def test_complete_workflow():
     print("Testing complete workflow...")
     
     try:
-        from fetch_fundamental_data import FundamentalDataFetcher
+        from fetchfinancialsexcel import FundamentalDataFetcher
         
         # Create test Excel file
         test_data = [

@@ -1,5 +1,5 @@
 """
-Setup script for fetch-fundamental-data package.
+Setup script for FetchFinancialsExcel package.
 """
 
 from setuptools import setup, find_packages
@@ -22,14 +22,14 @@ def read_requirements():
     return []
 
 setup(
-    name="fetch-fundamental-data",
+    name="FetchFinancialsExcel",
     version="0.1.0",
     author="Carl Viggo Gravenhorst-Lövenstierne",
     author_email="",
-    description="A Python package for fetching and analyzing fundamental financial data",
+    description="A Python package for fetching financial data from Excel files and performing fundamental analysis",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/username/fetch-fundamental-data",  # Update with actual repo URL
+    url="https://github.com/username/FetchFinancialsExcel",  # Update with actual repo URL
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -48,13 +48,13 @@ setup(
     install_requires=read_requirements(),
     entry_points={
         "console_scripts": [
-            "fetch-fundamentals=fetch_fundamental_data.cli:main",
+            "fetch-financials-excel=fetchfinancialsexcel.cli:main",
         ],
     },
-    keywords="finance, stocks, fundamental analysis, financial data, EODHD",
+    keywords="finance, stocks, fundamental analysis, financial data, EODHD, excel",
     project_urls={
-        "Bug Reports": "https://github.com/username/fetch-fundamental-data/issues",
-        "Source": "https://github.com/username/fetch-fundamental-data",
-        "Documentation": "https://github.com/username/fetch-fundamental-data/blob/main/README.md",
+        "Bug Reports": "https://github.com/username/FetchFinancialsExcel/issues",
+        "Source": "https://github.com/username/FetchFinancialsExcel",
+        "Documentation": "https://github.com/username/FetchFinancialsExcel/blob/main/README.md",
     },
 ) 

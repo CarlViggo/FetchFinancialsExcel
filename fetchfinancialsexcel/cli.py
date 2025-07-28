@@ -56,7 +56,7 @@ def main():
     parser.add_argument(
         '--version',
         action='version',
-        version='fetch-fundamental-data 0.1.0'
+        version='FetchFinancialsExcel 0.1.0'
     )
     
     args = parser.parse_args()

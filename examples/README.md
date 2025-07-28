@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example files and usage demonstrations for the `fetch-fundamental-data` package.
+This directory contains example files and usage demonstrations for the `FetchFinancialsExcel` package.
 
 ## Files
 
@@ -17,7 +17,7 @@ This directory contains example files and usage demonstrations for the `fetch-fu
 
 2. **Try the CLI with the sample file:**
    ```bash
-   fetch-fundamentals --api-key YOUR_EODHD_API_KEY --input examples/sample_tickers.xlsx --output results.xlsx
+   fetch-financials-excel --api-key YOUR_EODHD_API_KEY --input examples/sample_tickers.xlsx --output results.xlsx
    ```
 
 ## Sample Excel Format
