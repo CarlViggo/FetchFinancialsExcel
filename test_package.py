@@ -99,7 +99,7 @@ def test_data_fetching_mock():
     print("Testing data fetching (mocked)...")
     
     try:
-        from fetch_fundamental_data import FundamentalDataFetcher
+        from fetchfinancialsexcel import FundamentalDataFetcher
         
         # Mock API responses
         mock_fundamental_data = {
