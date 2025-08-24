@@ -144,3 +144,6 @@ sample_tickers.xlsx
 
 # Example output
 examples/output/ 
+
+# other
+testing_examples.ipynb

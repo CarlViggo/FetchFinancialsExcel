@@ -125,7 +125,7 @@ def test_data_fetching_mock():
                 'get_selected_highlights', 'calculate_roce', 'calculate_five_year_average_pe',
                 'get_revenue_growth_data', 'get_eps_growth_full', 'fcf_yield_growth_latest',
                 'buyback_change_latest', 'get_percent_insiders', 'get_moving_averages',
-                'gross_profitability', 'accruals', 'asset_growth', 'total_yield', 'compute_cop_at'
+                'gross_profitability', 'accruals', 'asset_growth', 'total_yield', 'compute_cop_at', "get_NOA"
             ]
             
             patches = []

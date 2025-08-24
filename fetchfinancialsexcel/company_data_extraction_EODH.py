@@ -579,3 +579,101 @@ def compute_cop_at(data):
     except (TypeError, ValueError, KeyError, IndexError, ZeroDivisionError):
         # If any error occurs, return None for cop_at
         return {"cop_at": None}
+    
+def get_operating_assets_helper(fundamental_data, year):
+    inc_data = fundamental_data.get("Financials", {}).get("Balance_Sheet", {}).get("yearly", {})
+
+    diff = int(CURRENT_YEAR) - year - 1
+    relevant_years = sorted(inc_data.keys(), reverse=True)[diff:(diff + 2)]
+
+    # totala tillgångar
+    last_year_total_assets = inc_data.get(relevant_years[0], {}).get("totalAssets")
+    second_latest_year_total_assets = inc_data.get(relevant_years[1], {}).get("totalAssets")
+  
+    # kontanter och kortfristiga investeringar
+    last_year_cashAndShortTermInvestments = inc_data.get(relevant_years[0], {}).get("cashAndShortTermInvestments")
+    second_latest_year_cashAndShortTermInvestments = inc_data.get(relevant_years[1], {}).get("cashAndShortTermInvestments")
+    
+    if None in [last_year_total_assets, second_latest_year_total_assets,
+                last_year_cashAndShortTermInvestments, second_latest_year_cashAndShortTermInvestments,
+                ]:
+        return [None, None]
+    # operativa tillgångar = totala tillgångar - kontanter och kortfristiga investeringar
+    last_year_operating_assets = float(last_year_total_assets) - float(last_year_cashAndShortTermInvestments)
+    second_latest_year_operating_assets = float(second_latest_year_total_assets) - float(second_latest_year_cashAndShortTermInvestments)
+
+    return [last_year_operating_assets, second_latest_year_operating_assets]
+
+# hjälpfunktion för NOA, beräknar operativa skulder
+def get_operating_liabilities_helper(fundamental_data, year):
+    inc_data = fundamental_data.get("Financials", {}).get("Balance_Sheet", {}).get("yearly", {})
+
+    diff = int(CURRENT_YEAR) - year - 1
+    relevant_years = sorted(inc_data.keys(), reverse=True)[diff:(diff + 2)]
+
+    # totala tillgångar
+    last_year_total_assets = inc_data.get(relevant_years[0], {}).get("totalAssets")
+    second_latest_year_total_assets = inc_data.get(relevant_years[1], {}).get("totalAssets")
+
+    # kortfristiga och långfristiga skulder
+    last_year_shortLongTermDebtTotal = inc_data.get(relevant_years[0], {}).get("shortLongTermDebtTotal")
+    second_latest_year_shortLongTermDebtTotal = inc_data.get(relevant_years[1], {}).get("shortLongTermDebtTotal")
+
+    # totala aktieägares eget kapital
+    last_year_totalStockholderEquity = inc_data.get(relevant_years[0], {}).get("totalStockholderEquity")
+    second_latest_year_totalStockholderEquity = inc_data.get(relevant_years[1], {}).get("totalStockholderEquity")
+
+    if None in [last_year_total_assets, second_latest_year_total_assets,
+                last_year_shortLongTermDebtTotal, second_latest_year_shortLongTermDebtTotal,
+                last_year_totalStockholderEquity, second_latest_year_totalStockholderEquity]:
+        return [None, None]
+
+    # operativa skulder = totala tillgångar - totala aktieägares eget kapital - kort- och långfristiga skulder
+    last_year_operating_liabilities = float(last_year_total_assets) - float(last_year_totalStockholderEquity) - float(last_year_shortLongTermDebtTotal)
+    second_latest_year_operating_liabilities = float(second_latest_year_total_assets) - float(second_latest_year_totalStockholderEquity) - float(second_latest_year_shortLongTermDebtTotal)
+
+    return [last_year_operating_liabilities, second_latest_year_operating_liabilities]
+
+# hjälpfunktion för NOA, beräknar totala tillgångar
+def get_total_assets_helper(fundamental_data, year):
+    inc_data = fundamental_data.get("Financials", {}).get("Balance_Sheet", {}).get("yearly", {})
+
+    diff = int(CURRENT_YEAR) - year - 1
+    relevant_years = sorted(inc_data.keys(), reverse=True)[diff:(diff + 3)]
+
+    last_year_total_assets = inc_data.get(relevant_years[0], {}).get("totalAssets")
+    second_latest_year_total_assets = inc_data.get(relevant_years[1], {}).get("totalAssets")
+    third_latest_year_total_assets = inc_data.get(relevant_years[2], {}).get("totalAssets")
+
+    if None in [last_year_total_assets, second_latest_year_total_assets, third_latest_year_total_assets]:
+        return [None, None, None]
+
+    return [last_year_total_assets, second_latest_year_total_assets, third_latest_year_total_assets]
+
+# NOA
+def get_NOA(fundamental_data):
+    year = int(CURRENT_YEAR) - 1
+    operating_assets = get_operating_assets_helper(fundamental_data, year)
+    operating_liabilities = get_operating_liabilities_helper(fundamental_data, year)
+    total_assets = get_total_assets_helper(fundamental_data, year)
+    
+    if None in operating_assets + operating_liabilities + total_assets:
+        return {
+            f"NOA {year}": None,
+            f"NOA {year-1}": None
+        }
+
+    if total_assets[1] == 0 or total_assets[2] == 0:
+        return {f"NOA {year}": None, f"NOA {year-1}": None}
+    
+    # NOA_t = årets operativa tillgångar - årets operativa skulder / föregående års totala tillgångar
+    last_year_NOA = float((operating_assets[0] - operating_liabilities[0])) / float(total_assets[1])
+
+    # NOA_t-1 = föregående års operativa tillgångar - föregående års operativa skulder / året före föregående års totala tillgångar
+    second_latest_year_NOA = float((operating_assets[1] - operating_liabilities[1])) / float(total_assets[2])
+    
+    noa_gra = last_year_NOA - second_latest_year_NOA,
+    
+    return {
+        f"NOA_GR1A": round(noa_gra, 4)
+    }

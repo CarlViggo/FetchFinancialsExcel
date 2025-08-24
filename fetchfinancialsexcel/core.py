@@ -41,7 +41,7 @@ class FundamentalDataFetcher:
         price_data = eodh.fetch_price_data(company_ticker)
 
         # Initialize empty dictionaries
-        price = general = roce = pe = revenue = buybacks = ma = eps = total_yield = gross_p = accrual = asset_g = insiders = fcf = cop_at = {}
+        price = general = roce = pe = revenue = buybacks = ma = eps = total_yield = gross_p = accrual = asset_g = insiders = fcf = cop_at = noa = {}
         
         # Fetch all indicators with error handling
         try: 
@@ -134,6 +134,12 @@ class FundamentalDataFetcher:
         except Exception as e:
             print(f"Error calculating COP/AT: {e}")
 
+        try: 
+            noa = eodh.get_NOA(data)
+            print(f"NOA calculated for {company_ticker}.")
+        except Exception as e:
+            print(f"Error calculating NOA: {e}")
+
         # Fetch conservative components for later calculation
         try: 
             conservative_comps = analyse.conservative(data, price_data)
@@ -142,7 +148,7 @@ class FundamentalDataFetcher:
             conservative_comps = {}
 
         # Combine all indicators
-        combined = {**price, **general, **roce, **pe, **revenue, **eps, **fcf, **buybacks, **insiders, **ma, **gross_p, **accrual, **asset_g, **total_yield, **cop_at}
+        combined = {**price, **general, **roce, **pe, **revenue, **eps, **fcf, **buybacks, **insiders, **ma, **gross_p, **accrual, **asset_g, **total_yield, **cop_at, **noa}
         other = {**conservative_comps}
         
         return combined, other
