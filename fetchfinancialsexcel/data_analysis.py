@@ -195,3 +195,88 @@ def quality_score(df):
         raise ValueError(f"Failed to compute quality score: {e}")
 
     return df
+
+def create_cop_at_noa_composite_score(df):
+    """
+    Creates a composite score from COP_AT and NOA_GR1A columns.
+    
+    1. Selects cop_at, NOA_GR1A, and Sector columns
+    2. Standardizes using z-scores within each sector  
+    3. Creates composite score = z(COP_AT) - z(NOA_GR1A)
+    
+    Parameters:
+    df (pandas.DataFrame): DataFrame containing 'cop_at', 'NOA_GR1A', and 'Sector' columns
+    
+    Returns:
+    pandas.DataFrame: DataFrame with original columns plus composite score
+    """
+    print("Calculating composite score...")
+    
+    # Check if required columns exist
+    required_columns = ['cop_at', 'NOA_GR1A', 'Sector']
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Warning: Missing columns {missing_columns}. Skipping composite score calculation.")
+        return df
+    
+    # Create a copy of the dataframe
+    result_df = df.copy()
+    
+    # Initialize the composite score column
+    result_df['z_NOA_COP_Composite'] = None
+    
+    try:
+        # Process each sector separately
+        for sector_name in df['Sector'].dropna().unique():
+            print(f"Processing sector: {sector_name}")
+            
+            # Get rows for this sector with valid cop_at and NOA_GR1A values
+            sector_mask = (
+                (df['Sector'] == sector_name) & 
+                df['cop_at'].notna() & 
+                df['NOA_GR1A'].notna()
+            )
+            
+            sector_count = sector_mask.sum()
+            if sector_count < 2:
+                print(f"  Skipping {sector_name}: only {sector_count} valid data points")
+                continue
+            
+            # Get the data for this sector
+            sector_data = df[sector_mask]
+            
+            # Calculate sector statistics
+            cop_mean = sector_data['cop_at'].mean()
+            cop_std = sector_data['cop_at'].std()
+            noa_mean = sector_data['NOA_GR1A'].mean()
+            noa_std = sector_data['NOA_GR1A'].std()
+            
+            print(f"  {sector_name}: {sector_count} companies, COP_AT std={cop_std:.4f}, NOA std={noa_std:.4f}")
+            
+            # Skip if no variation (all values the same)
+            if cop_std == 0 or noa_std == 0:
+                print(f"  Skipping {sector_name}: zero standard deviation")
+                continue
+            
+            # Calculate z-scores and composite score for each company in this sector
+            for idx in sector_data.index:
+                cop_value = df.loc[idx, 'cop_at']
+                noa_value = df.loc[idx, 'NOA_GR1A']
+                
+                # Calculate z-scores
+                z_cop = (cop_value - cop_mean) / cop_std
+                z_noa = (noa_value - noa_mean) / noa_std
+                
+                # Calculate composite score: z(COP_AT) - z(NOA_GR1A)
+                composite = z_cop - z_noa
+                
+                # Round and store
+                result_df.loc[idx, 'z_NOA_COP_Composite'] = round(float(composite), 4)
+        
+        print("Composite score calculation completed.")
+        
+    except Exception as e:
+        print(f"Error in composite score calculation: {e}")
+        return df
+    
+    return result_df

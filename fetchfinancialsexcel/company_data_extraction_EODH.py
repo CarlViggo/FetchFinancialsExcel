@@ -579,12 +579,79 @@ def compute_cop_at(data):
     except (TypeError, ValueError, KeyError, IndexError, ZeroDivisionError):
         # If any error occurs, return None for cop_at
         return {"cop_at": None}
+
+
+def compute_cop_at_generous(data):
+    THRESHOLD = 1  # cap extreme values
     
+    try:
+        income_statement = data.get("Financials", {}).get("Income_Statement", {}).get("yearly", {})
+        balance_sheet = data.get("Financials", {}).get("Balance_Sheet", {}).get("yearly", {})
+
+        # Ensure we have at least two years of data
+        if len(income_statement) < 2 or len(balance_sheet) < 2:
+            return {"cop_at_revised": None}
+
+        # Sort years (latest first)
+        sorted_years_income = sorted(income_statement.keys(), reverse=True)
+        sorted_years_balance = sorted(balance_sheet.keys(), reverse=True)
+
+        latest_year = sorted_years_income[0]
+        second_latest_year = sorted_years_income[1]
+
+        # Extract required values
+        ebit = income_statement[latest_year].get("ebit")
+        total_assets_now = balance_sheet[latest_year].get("totalAssets")
+        netReceivables_now = balance_sheet[latest_year].get("netReceivables")
+        netReceivables_then = balance_sheet[second_latest_year].get("netReceivables")
+        inventory_now = balance_sheet[latest_year].get("inventory")
+        inventory_then = balance_sheet[second_latest_year].get("inventory")
+
+        # If *any* required value is missing → return None
+        required = [ebit, total_assets_now, netReceivables_now,
+                    netReceivables_then, inventory_now, inventory_then]
+        if any(v is None for v in required):
+            return {"cop_at_revised": None}
+
+        # Convert to floats
+        ebit = float(ebit)
+        total_assets_now = float(total_assets_now)
+        netReceivables_now = float(netReceivables_now)
+        netReceivables_then = float(netReceivables_then)
+        inventory_now = float(inventory_now)
+        inventory_then = float(inventory_then)
+
+        # Prevent divide-by-zero
+        if total_assets_now == 0:
+            return {"cop_at_revised": None}
+
+        # Changes
+        change_in_netReceivables = netReceivables_now - netReceivables_then
+        change_in_inventory = inventory_now - inventory_then
+
+        # COP_AT
+        numerator = ebit - change_in_netReceivables - change_in_inventory
+        denominator = total_assets_now
+        cop_at = numerator / denominator
+
+        # Threshold filter
+        if abs(cop_at) > THRESHOLD:
+            return {"cop_at": None}
+        return {"cop_at_revised": round(cop_at, 4)}
+
+    except Exception:
+        return {"cop_at_revised": None}
+
+
 def get_operating_assets_helper(fundamental_data, year):
     inc_data = fundamental_data.get("Financials", {}).get("Balance_Sheet", {}).get("yearly", {})
 
     diff = int(CURRENT_YEAR) - year - 1
     relevant_years = sorted(inc_data.keys(), reverse=True)[diff:(diff + 2)]
+    
+    # Check if we have enough years of data
+    if len(relevant_years) < 2:
+        return [None, None]
 
     # totala tillgångar
     last_year_total_assets = inc_data.get(relevant_years[0], {}).get("totalAssets")
@@ -610,6 +677,10 @@ def get_operating_liabilities_helper(fundamental_data, year):
 
     diff = int(CURRENT_YEAR) - year - 1
     relevant_years = sorted(inc_data.keys(), reverse=True)[diff:(diff + 2)]
+    
+    # Check if we have enough years of data
+    if len(relevant_years) < 2:
+        return [None, None]
 
     # totala tillgångar
     last_year_total_assets = inc_data.get(relevant_years[0], {}).get("totalAssets")
@@ -640,6 +711,10 @@ def get_total_assets_helper(fundamental_data, year):
 
     diff = int(CURRENT_YEAR) - year - 1
     relevant_years = sorted(inc_data.keys(), reverse=True)[diff:(diff + 3)]
+    
+    # Check if we have enough years of data
+    if len(relevant_years) < 3:
+        return [None, None, None]
 
     last_year_total_assets = inc_data.get(relevant_years[0], {}).get("totalAssets")
     second_latest_year_total_assets = inc_data.get(relevant_years[1], {}).get("totalAssets")
@@ -659,12 +734,11 @@ def get_NOA(fundamental_data):
     
     if None in operating_assets + operating_liabilities + total_assets:
         return {
-            f"NOA {year}": None,
-            f"NOA {year-1}": None
+            "NOA_GR1A": None
         }
 
     if total_assets[1] == 0 or total_assets[2] == 0:
-        return {f"NOA {year}": None, f"NOA {year-1}": None}
+        return {"NOA_GR1A": None}
     
     # NOA_t = årets operativa tillgångar - årets operativa skulder / föregående års totala tillgångar
     last_year_NOA = float((operating_assets[0] - operating_liabilities[0])) / float(total_assets[1])
@@ -672,8 +746,8 @@ def get_NOA(fundamental_data):
     # NOA_t-1 = föregående års operativa tillgångar - föregående års operativa skulder / året före föregående års totala tillgångar
     second_latest_year_NOA = float((operating_assets[1] - operating_liabilities[1])) / float(total_assets[2])
     
-    noa_gra = last_year_NOA - second_latest_year_NOA,
+    noa_gra = last_year_NOA - second_latest_year_NOA
     
     return {
-        f"NOA_GR1A": round(noa_gra, 4)
+        "NOA_GR1A": round(noa_gra, 4)
     }

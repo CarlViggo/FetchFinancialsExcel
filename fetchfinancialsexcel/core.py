@@ -41,7 +41,7 @@ class FundamentalDataFetcher:
         price_data = eodh.fetch_price_data(company_ticker)
 
         # Initialize empty dictionaries
-        price = general = roce = pe = revenue = buybacks = ma = eps = total_yield = gross_p = accrual = asset_g = insiders = fcf = cop_at = noa = {}
+        price = general = roce = pe = revenue = buybacks = ma = eps = total_yield = gross_p = accrual = asset_g = insiders = fcf = cop_at = cop_at_generous = noa = {}
         
         # Fetch all indicators with error handling
         try: 
@@ -135,6 +135,12 @@ class FundamentalDataFetcher:
             print(f"Error calculating COP/AT: {e}")
 
         try: 
+            cop_at_generous = eodh.compute_cop_at_generous(data)
+            print(f"COP/AT Revised calculated for {company_ticker}.")
+        except Exception as e:
+            print(f"Error calculating COP/AT Revised: {e}")
+
+        try: 
             noa = eodh.get_NOA(data)
             print(f"NOA calculated for {company_ticker}.")
         except Exception as e:
@@ -148,7 +154,7 @@ class FundamentalDataFetcher:
             conservative_comps = {}
 
         # Combine all indicators
-        combined = {**price, **general, **roce, **pe, **revenue, **eps, **fcf, **buybacks, **insiders, **ma, **gross_p, **accrual, **asset_g, **total_yield, **cop_at, **noa}
+        combined = {**price, **general, **roce, **pe, **revenue, **eps, **fcf, **buybacks, **insiders, **ma, **gross_p, **accrual, **asset_g, **total_yield, **cop_at, **cop_at_generous, **noa}
         other = {**conservative_comps}
         
         return combined, other
@@ -200,8 +206,12 @@ class FundamentalDataFetcher:
         return data_df, separate_data_list
     
     def analyze_data(self, df, separate_data_list):
+        
+        # Create COP/AT Revised composite score
+        df_analyzed = analyse.create_cop_at_noa_composite_score(df)
+        
         # Apply Greenblatt formula
-        df_analyzed = analyse.greenblatt_formula(df)
+        df_analyzed = analyse.greenblatt_formula(df_analyzed)
         
         # Apply conservative formula
         df_analyzed = analyse.conservative_formula(df_analyzed, separate_data_list)
@@ -229,7 +239,60 @@ class FundamentalDataFetcher:
         print("Performing financial analysis...")
         df_analyzed = self.analyze_data(df, separate_data_list)
         
-        # Save to Excel
+        # Clean data before saving to Excel
         print(f"Saving results to: {output_file}")
-        df_analyzed.to_excel(output_file, index=False, engine='openpyxl')
+        
+        # Comprehensive data cleaning to prevent Excel XML errors
+        import numpy as np
+        df_cleaned = df_analyzed.copy()
+        
+        # Debug: Check for problematic data types and values
+        print("Debug: Checking for problematic values...")
+        problematic_cols = []
+        for col in df_cleaned.columns:
+            if df_cleaned[col].dtype == 'object':
+                # Check for very long strings that might cause issues
+                max_length = df_cleaned[col].astype(str).str.len().max()
+                if max_length > 1000:
+                    problematic_cols.append(f"{col} (long strings: max {max_length})")
+            
+            # Check for inf values
+            if pd.api.types.is_numeric_dtype(df_cleaned[col]):
+                inf_count = np.isinf(df_cleaned[col]).sum()
+                if inf_count > 0:
+                    problematic_cols.append(f"{col} (inf values: {inf_count})")
+        
+        if problematic_cols:
+            print(f"Found potentially problematic columns: {problematic_cols}")
+        
+        # Replace inf, -inf, and NaN with None for Excel compatibility
+        df_cleaned = df_cleaned.replace([float('inf'), float('-inf'), np.inf, -np.inf], None)
+        
+        # Handle any remaining NaN values
+        df_cleaned = df_cleaned.where(pd.notnull(df_cleaned), None)
+        
+        # Clean column names - remove/replace problematic characters
+        df_cleaned.columns = [str(col).strip().replace('/', '_').replace('\\', '_').replace('*', '_').replace('[', '_').replace(']', '_').replace(':', '_').replace('?', '_') for col in df_cleaned.columns]
+        
+        # Convert any complex data types to strings
+        for col in df_cleaned.columns:
+            if df_cleaned[col].dtype == 'object':
+                df_cleaned[col] = df_cleaned[col].astype(str)
+                # Replace 'None' strings back to actual None
+                df_cleaned[col] = df_cleaned[col].replace('None', None)
+        
+        # Try writing with different engines in case of issues
+        try:
+            df_cleaned.to_excel(output_file, index=False, engine='openpyxl')
+        except Exception as e:
+            print(f"Error with openpyxl engine: {e}")
+            print("Trying with xlsxwriter engine...")
+            try:
+                df_cleaned.to_excel(output_file, index=False, engine='xlsxwriter')
+            except Exception as e2:
+                print(f"Error with xlsxwriter engine: {e2}")
+                # Fallback to CSV if Excel fails
+                csv_file = output_file.replace('.xlsx', '.csv')
+                print(f"Saving as CSV instead: {csv_file}")
+                df_cleaned.to_csv(csv_file, index=False)
         print("Processing complete!") 
