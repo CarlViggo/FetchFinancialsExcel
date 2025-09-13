@@ -607,6 +607,9 @@ def compute_cop_at_generous(data):
 
         # Extract required values
         ebit = income_statement[latest_year].get("ebit")
+        if ebit is None: 
+            ebit = float(income_statement[latest_year].get("operatingIncome", 0))
+    
         total_assets_now = balance_sheet[latest_year].get("totalAssets")
         netReceivables_now = balance_sheet[latest_year].get("netReceivables")
         netReceivables_then = balance_sheet[second_latest_year].get("netReceivables")
