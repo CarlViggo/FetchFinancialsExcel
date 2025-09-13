@@ -545,8 +545,15 @@ def compute_cop_at(data):
         # ebit
         ebit = float(income_statement[latest_year].get("ebit", 0))
 
+        # set ebit to operating income if ebit is None
+        if ebit is None: 
+            ebit = float(income_statement[latest_year].get("operatingIncome", 0))
+
         # deprication and amortization
         deprication_and_amortization = float(income_statement[latest_year].get("depreciationAndAmortization", 0))
+
+        if deprication_and_amortization is None:
+            deprication_and_amortization = float(income_statement[latest_year].get("reconciledDepreciation", 0))
 
         # Ensure total_assets_now is not zero before proceeding to avoid ZeroDivisionError later
         total_assets_now = float(balance_sheet[latest_year].get("totalAssets", 0))
@@ -579,7 +586,6 @@ def compute_cop_at(data):
     except (TypeError, ValueError, KeyError, IndexError, ZeroDivisionError):
         # If any error occurs, return None for cop_at
         return {"cop_at": None}
-
 
 def compute_cop_at_generous(data):
     THRESHOLD = 1  # cap extreme values
