@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import pandas as pd
+import numpy as np
 from unittest.mock import patch, Mock
 
 def test_imports():
@@ -10,10 +11,19 @@ def test_imports():
     try:
         from fetchfinancialsexcel import FundamentalDataFetcher
         from fetchfinancialsexcel import cli
+        print("✅ Basic imports successful")
+        
+        # Test new imports for residual momentum
+        import statsmodels.api as sm
+        from sklearn.preprocessing import StandardScaler
+        import pandas_datareader.data as web
+        print("✅ New residual momentum imports successful")
+        
         print("✅ All imports successful")
         return True
     except ImportError as e:
         print(f"❌ Import error: {e}")
+        print("Note: Make sure to install new requirements: pip install statsmodels scikit-learn pandas-datareader")
         return False
 
 def test_cli_help():
@@ -135,9 +145,11 @@ def test_data_fetching_mock():
                 mock_func.return_value = {}
                 patches.append(patcher)
             
-            # Mock conservative analysis
-            with patch('fetchfinancialsexcel.data_analysis.conservative') as mock_conservative:
+            # Mock conservative analysis and excess returns
+            with patch('fetchfinancialsexcel.data_analysis.conservative') as mock_conservative, \
+                 patch('fetchfinancialsexcel.data_analysis.calculate_monthly_excess_returns') as mock_excess:
                 mock_conservative.return_value = {"volatility": 0.25}
+                mock_excess.return_value = {"AAPL": list(np.random.normal(0.01, 0.05, 36))}
                 
                 # Test fetching
                 fetcher = FundamentalDataFetcher(api_key="test_key")
@@ -188,6 +200,167 @@ def test_analysis_functions():
         print(f"Analysis functions error: {e}")
         return False
 
+def test_residual_momentum_functions():
+    print("Testing residual momentum functions...")
+    
+    try:
+        from fetchfinancialsexcel import data_analysis
+        import numpy as np
+        import pandas as pd
+        
+        # Test calculate_monthly_excess_returns function
+        test_ticker = "AAPL"
+        test_price_data = []
+        
+        # Create 40 months of mock price data (more than needed 36)
+        from datetime import datetime, timedelta
+        base_date = datetime(2021, 1, 1)
+        base_price = 100.0
+        
+        for i in range(40 * 30):  # 40 months * 30 days
+            date = base_date + timedelta(days=i)
+            price = base_price * (1 + np.random.normal(0, 0.02))  # Random walk
+            test_price_data.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'adjusted_close': price
+            })
+        
+        # Test excess returns calculation
+        excess_returns_result = data_analysis.calculate_monthly_excess_returns(test_ticker, test_price_data)
+        
+        # The function returns {'Excess Returns': {'AAPL': [...]}}
+        if 'Excess Returns' in excess_returns_result and test_ticker in excess_returns_result['Excess Returns']:
+            excess_returns = excess_returns_result['Excess Returns'][test_ticker]
+            if isinstance(excess_returns, list) and len(excess_returns) == 36:
+                print("✅ Monthly excess returns calculation works")
+            else:
+                print(f"❌ Excess returns wrong format: got {len(excess_returns) if isinstance(excess_returns, list) else type(excess_returns)}")
+                return False
+        else:
+            print("❌ Excess returns calculation failed")
+            print(f"Got result: {excess_returns_result}")
+            return False
+        
+        # Test ticker_excess_returns function
+        separate_data_list = [
+            {
+                'Ticker': 'AAPL',
+                'Excess Returns': {'AAPL': excess_returns}
+            }
+        ]
+        
+        df = pd.DataFrame([{'Ticker': 'AAPL', 'Company': 'Apple Inc'}])
+        ticker_returns = data_analysis.ticker_excess_returns(df, separate_data_list)
+        
+        if 'AAPL' in ticker_returns and ticker_returns['AAPL'] is not None:
+            print("✅ Ticker excess returns extraction works")
+        else:
+            print("❌ Ticker excess returns extraction failed")
+            return False
+        
+        # Test get_fama_factors (mocked)
+        with patch('fetchfinancialsexcel.data_analysis.web.DataReader') as mock_reader:
+            # Mock Fama-French data
+            mock_ff_data = pd.DataFrame({
+                'Mkt-RF': np.random.normal(0.01, 0.05, 36),
+                'SMB': np.random.normal(0.005, 0.03, 36),
+                'HML': np.random.normal(0.003, 0.04, 36)
+            })
+            mock_reader.return_value = [mock_ff_data]
+            
+            ff_data = data_analysis.get_fama_factors("US")
+            
+            if ff_data is not None and len(ff_data) == 36:
+                print("✅ Fama-French data fetching works")
+            else:
+                print("❌ Fama-French data fetching failed")
+                return False
+        
+        print("✅ All residual momentum functions work correctly")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Residual momentum functions error: {e}")
+        return False
+
+def test_residual_momentum_integration():
+    print("Testing residual momentum integration...")
+    
+    try:
+        from fetchfinancialsexcel import data_analysis
+        import numpy as np
+        import pandas as pd
+        
+        # Create test data with properly formatted excess returns
+        test_excess_returns = list(np.random.normal(0.01, 0.05, 36))  # 36 months of returns
+        
+        separate_data_list = [
+            {
+                'Ticker': 'AAPL',
+                'Excess Returns': {'AAPL': test_excess_returns},
+                'volatility': 0.25
+            },
+            {
+                'Ticker': 'MSFT',
+                'Excess Returns': {'MSFT': test_excess_returns},
+                'volatility': 0.20
+            }
+        ]
+        
+        df = pd.DataFrame([
+            {'Ticker': 'AAPL', 'Company': 'Apple Inc'},
+            {'Ticker': 'MSFT', 'Company': 'Microsoft Corp'}
+        ])
+        
+        # Mock Fama-French data and test residual momentum
+        with patch('fetchfinancialsexcel.data_analysis.get_fama_factors') as mock_ff:
+            mock_ff_data = pd.DataFrame({
+                'Mkt-RF': np.random.normal(0.01, 0.05, 36),
+                'SMB': np.random.normal(0.005, 0.03, 36),
+                'HML': np.random.normal(0.003, 0.04, 36)
+            })
+            mock_ff.return_value = mock_ff_data
+            
+            # Test residual momentum function
+            result_df = data_analysis.residual_momentum("US", df, separate_data_list)
+            
+            if 'rMOM' in result_df.columns:
+                print("✅ Residual momentum integration works")
+                return True
+            else:
+                print("❌ Residual momentum integration failed - no rMOM column")
+                return False
+                
+    except Exception as e:
+        print(f"❌ Residual momentum integration error: {e}")
+        return False
+
+def test_factor_country_parameter():
+    print("Testing factor_country parameter...")
+    
+    try:
+        from fetchfinancialsexcel import FundamentalDataFetcher
+        
+        # Test that factor_country parameter is accepted
+        fetcher = FundamentalDataFetcher(api_key="test_key")
+        
+        # Create mock data
+        mock_df = pd.DataFrame([{"Ticker": "AAPL", "Company": "Apple Inc"}])
+        mock_separate = [{"Ticker": "AAPL", "volatility": 0.25}]
+        
+        # Test analyze_data with factor_country parameter
+        with patch.object(fetcher, 'analyze_data') as mock_analyze:
+            mock_analyze.return_value = mock_df
+            
+            # This should not raise an error
+            result = fetcher.analyze_data(mock_df, mock_separate, factor_country="Europe")
+            print("✅ factor_country parameter works")
+            return True
+            
+    except Exception as e:
+        print(f"❌ factor_country parameter error: {e}")
+        return False
+
 
 def test_complete_workflow():
     print("Testing complete workflow...")
@@ -218,9 +391,9 @@ def test_complete_workflow():
                 mock_fetch.return_value = (mock_df, mock_separate)
                 mock_analyze.return_value = mock_df
                 
-                # Test workflow
+                # Test workflow with factor_country parameter
                 fetcher = FundamentalDataFetcher(api_key="test_key")
-                fetcher.process_excel_file(input_file.name, output_file.name, max_workers=1)
+                fetcher.process_excel_file(input_file.name, output_file.name, max_workers=1, factor_country="US")
                 
                 # Check if output file was created
                 if os.path.exists(output_file.name):
@@ -256,6 +429,9 @@ def run_all_tests():
         test_excel_processing,
         test_data_fetching_mock,
         test_analysis_functions,
+        test_residual_momentum_functions,
+        test_residual_momentum_integration,
+        test_factor_country_parameter,
         test_complete_workflow,
         test_cli_help
     ]

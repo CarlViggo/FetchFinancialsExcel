@@ -6,6 +6,11 @@ from datetime import timedelta
 import statistics as stats
 import numpy as np
 
+import statsmodels.api as sm
+from sklearn.preprocessing import StandardScaler
+import pandas_datareader.data as web
+
+
 now = datetime.today()
 CURRENT_YEAR = now.strftime("%Y")
 
@@ -280,3 +285,268 @@ def create_cop_at_noa_composite_score(df):
         return df
     
     return result_df
+
+###################### Residual momentum ######################
+
+def calculate_monthly_excess_returns(ticker, price_data, risk_free_rate=1.02):
+    if not price_data or len(price_data) < 38: 
+         return {
+            ticker: None
+        }
+    
+    try:
+        # Convert string dates to datetime objects if needed
+        for d in price_data:
+            if isinstance(d['date'], str):
+                d['date'] = datetime.strptime(d['date'], '%Y-%m-%d')
+        
+        # Sort by date to ensure chronological order
+        price_data.sort(key=lambda x: x['date'])
+        
+        # Group by month and get last day of each month
+        monthly_data = defaultdict(list)
+        for entry in price_data:
+            key = (entry['date'].year, entry['date'].month)
+            monthly_data[key].append(entry)
+        
+        # Get the last trading day of each month (highest date in each month)
+        monthly_prices = []
+        for key in sorted(monthly_data.keys()):
+            month_entries = monthly_data[key]
+            last_day_entry = max(month_entries, key=lambda x: x['date'])
+            monthly_prices.append({
+                'date': last_day_entry['date'],
+                'adjusted_close': last_day_entry['adjusted_close']
+            })
+        
+        # Take the last 37 months (need 37 to calculate 36 returns)
+        last_37_months = monthly_prices[-37:]
+        
+        if len(last_37_months) < 37:
+            return {
+                ticker: None
+            }
+        
+        # Calculate monthly risk-free rate (convert annual to monthly)
+        monthly_rf_rate = (risk_free_rate ** (1/12)) - 1
+        
+        # Calculate monthly returns and excess returns
+        monthly_excess_returns = []
+        for i in range(1, len(last_37_months)):
+            current_price = last_37_months[i]['adjusted_close']
+            previous_price = last_37_months[i-1]['adjusted_close']
+            
+            # Monthly return
+            monthly_return = (current_price / previous_price) - 1
+            
+            # Excess return (monthly return - risk-free rate)
+            excess_return = monthly_return - monthly_rf_rate
+            
+            monthly_excess_returns.append(excess_return)
+        
+        return {
+            # monthly_excess_returns[0] är avkastningen för 36 månader sedan
+            # monthly_excess_returns[-1] är av kastningen för en månad sedan. 
+            f"Excess Returns": {ticker:monthly_excess_returns}
+        }
+        
+    except Exception as e:
+        print(f"Error calculating monthly excess returns: {e}")
+        return {
+            ticker: None
+        }
+
+
+def get_fama_factors(factor_country): 
+    """
+    Safely fetch Fama-French factors with error handling
+    
+    Returns:
+    pandas.DataFrame or None: Fama-French factors for last 36 months, or None if failed
+    """
+    try:
+        if factor_country == "Europe":
+            ff = web.DataReader("Europe_3_Factors", "famafrench")[0]
+        else: 
+            ff = web.DataReader("F-F_Research_Data_Factors", "famafrench")[0]
+
+        if ff is None or len(ff) == 0:
+            print(f"Warning: No Fama-French data received for {factor_country}")
+            return None
+            
+        ff_last_36 = ff.tail(36)
+        
+        if len(ff_last_36) < 36:
+            print(f"Warning: Only {len(ff_last_36)} months of Fama-French data available (need 36)")
+            return None
+            
+        return ff_last_36
+        
+    except Exception as e:
+        print(f"Error fetching Fama-French factors for {factor_country}: {e}")
+        print("Residual momentum analysis will be skipped.")
+        return None
+
+def ticker_excess_returns(df, separate_data_list):        
+    # Extract excess returns for each ticker
+    ticker_excess_returns = {}
+    
+    for data_dict in separate_data_list:
+        ticker = data_dict.get('Ticker')
+        if not ticker:
+            continue
+        
+        # Look for excess returns in the data dictionary
+        # Since you return {"Excess Returns": {ticker: monthly_excess_returns}}
+        excess_returns_dict = data_dict.get("Excess Returns")
+        excess_returns = None
+        if excess_returns_dict and isinstance(excess_returns_dict, dict):
+            excess_returns = excess_returns_dict.get(ticker)
+        
+        # Store in dictionary: {ticker: excess_returns_list}
+        ticker_excess_returns[ticker] = excess_returns
+    
+    return ticker_excess_returns
+
+
+def residual_momentum(factor_country, df, separate_data_list):
+    """
+    Beräknar residual momentum (rMOM) för varje aktie.
+
+    1. Hämtar Fama-French 3-faktor-data.
+    2. Hämtar månatliga överavkastningar för varje ticker.
+    3. Utför en linjär regression för varje ticker över en 36-månadersperiod för att få residualer.
+    4. Standardiserar residualerna.
+    5. Beräknar rMOM-poängen baserat på standardiserade residualer från månader t-6 till t-2.
+
+    Args:
+        df (pd.DataFrame): Huvud-DataFrame som inte används direkt i denna funktion, men kan
+                           vara en del av en större pipeline.
+        separate_data_list (list): En lista med dictionaries, där varje dictionary
+                                   innehåller ticker och dess överavkastningar.
+
+    Returns:
+        pd.DataFrame: Ett DataFrame som innehåller varje tickers rMOM-poäng.
+    """
+    
+    # Steg 1: Hämta Fama-French-faktorer
+    fama_factors = get_fama_factors(factor_country)
+    
+    # SÄKERHETSKONTROLL: Om Fama-French data inte kan hämtas, returnera ursprunglig df
+    if fama_factors is None:
+        print("Warning: Residual momentum analysis skipped due to missing Fama-French data")
+        return df
+    
+    try:
+        fama_factors = fama_factors[['Mkt-RF', 'SMB', 'HML']]
+    except KeyError as e:
+        print(f"Error: Required Fama-French columns missing: {e}")
+        return df
+    
+    # Steg 2: Hämta överavkastningar för varje ticker
+    ticker_returns = ticker_excess_returns(df, separate_data_list)
+    
+    # SÄKERHETSKONTROLL: Om inga ticker returns finns, returnera ursprunglig df
+    if not ticker_returns:
+        print("Warning: No ticker excess returns found for residual momentum analysis")
+        return df
+    # Steg 3 & 4: Regression och standardisering av residualer
+    all_rmom_scores = {}
+    
+    for ticker, returns_list in ticker_returns.items():
+        if returns_list is None or len(returns_list) < 36:
+            continue # Hoppa över om det inte finns tillräckligt med data
+        
+        try:
+            # SÄKERHETSKONTROLL: Kontrollera att vi har exakt 36 månaders data
+            if len(returns_list) != 36:
+                print(f"Warning: {ticker} has {len(returns_list)} months of data, need exactly 36")
+                continue
+                
+            # Säkerställ att vi har 36 månaders data och matcha index
+            if len(fama_factors) != 36:
+                print(f"Warning: Fama-French data has {len(fama_factors)} months, need exactly 36")
+                continue
+                
+            returns_series = pd.Series(returns_list, index=fama_factors.index)
+            
+            # SÄKERHETSKONTROLL: Kontrollera för NaN eller inf värden
+            if returns_series.isna().any() or np.isinf(returns_series).any():
+                print(f"Warning: {ticker} has NaN or infinite values in returns data")
+                continue
+            
+            if fama_factors.isna().any().any() or np.isinf(fama_factors).any().any():
+                print(f"Warning: Fama-French data has NaN or infinite values")
+                continue
+            
+            # Regressionen måste ha en konstant term
+            X = sm.add_constant(fama_factors)
+            y = returns_series
+
+            # Utför OLS-regression
+            model = sm.OLS(y, X).fit()
+            residuals = model.resid
+            
+            # SÄKERHETSKONTROLL: Kontrollera residualer
+            if residuals.isna().any() or np.isinf(residuals).any():
+                print(f"Warning: {ticker} regression produced NaN or infinite residuals")
+                continue
+            
+            if len(residuals) < 6:
+                print(f"Warning: {ticker} has too few residuals ({len(residuals)}) for momentum calculation")
+                continue
+            
+            # Standardisera residualerna
+            scaler = StandardScaler()
+            residuals_reshaped = residuals.values.reshape(-1, 1)
+            standardized_residuals = scaler.fit_transform(residuals_reshaped)
+            
+            # Steg 5: Beräkna rMOM-poäng
+            # Använd residualer från t-6 till t-2 för att undvika reversering 
+            rmom_window = standardized_residuals[-6:-1].flatten()
+            
+            # SÄKERHETSKONTROLL: Kontrollera att vi har tillräckligt med data för momentum
+            if len(rmom_window) < 5:
+                print(f"Warning: {ticker} has insufficient data for momentum window")
+                continue
+                
+            rmom_score = np.mean(rmom_window)
+            
+            # SÄKERHETSKONTROLL: Kontrollera att resultatet är giltigt
+            if np.isnan(rmom_score) or np.isinf(rmom_score):
+                print(f"Warning: {ticker} produced invalid rMOM score")
+                continue
+            
+            all_rmom_scores[ticker] = rmom_score
+            
+        except Exception as e:
+            print(f"Error in residual momentum calculation for {ticker}: {e}")
+            continue
+
+    # SÄKERHETSKONTROLL: Om inga rMOM scores beräknades, returnera ursprunglig df
+    if not all_rmom_scores:
+        print("Warning: No residual momentum scores could be calculated")
+        # Lägg till tom rMOM kolumn för konsistens
+        df_copy = df.copy()
+        df_copy['rMOM'] = None
+        return df_copy
+    
+    try:
+        # Returnera en DataFrame med rMOM-poängen för varje ticker
+        rmom_df = pd.DataFrame.from_dict(all_rmom_scores, orient='index', columns=['rMOM'])
+        rmom_df.index.name = 'Ticker'
+        
+        # SÄKERHETSKONTROLL: Kontrollera att ursprunglig df har Ticker kolumn
+        if 'Ticker' not in df.columns:
+            print("Error: Original DataFrame missing 'Ticker' column for residual momentum merge")
+            return df
+        
+        # Slå samman rMOM-poängen med det ursprungliga DataFrame
+        merged_df = pd.merge(df, rmom_df, left_on='Ticker', right_on='Ticker', how='left')
+        
+        print(f"Successfully calculated residual momentum for {len(all_rmom_scores)} tickers")
+        return merged_df
+        
+    except Exception as e:
+        print(f"Error merging residual momentum results: {e}")
+        return df

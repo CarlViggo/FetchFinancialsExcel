@@ -152,10 +152,17 @@ class FundamentalDataFetcher:
         except Exception as e:
             print(f"Error calculating conservative components: {e}")
             conservative_comps = {}
+        
+        try: 
+            excess_returns = analyse.calculate_monthly_excess_returns(company_ticker, price_data)
+        except Exception as e:
+            print(f"Error calculating excess returns: {e}")
+            excess_returns = {}
 
         # Combine all indicators
         combined = {**price, **general, **roce, **pe, **revenue, **eps, **fcf, **buybacks, **insiders, **ma, **gross_p, **accrual, **asset_g, **total_yield, **cop_at, **cop_at_generous, **noa}
-        other = {**conservative_comps}
+        # store price data here
+        other = {**conservative_comps, **excess_returns}
         
         return combined, other
     
@@ -205,10 +212,13 @@ class FundamentalDataFetcher:
 
         return data_df, separate_data_list
     
-    def analyze_data(self, df, separate_data_list):
+    def analyze_data(self, df, separate_data_list, factor_country="US"):
         
         # Create COP/AT Revised composite score
         df_analyzed = analyse.create_cop_at_noa_composite_score(df)
+
+        # Residual momentum
+        df_analyzed = analyse.residual_momentum(factor_country, df_analyzed, separate_data_list)
         
         # Apply Greenblatt formula
         df_analyzed = analyse.greenblatt_formula(df_analyzed)
@@ -224,7 +234,7 @@ class FundamentalDataFetcher:
         
         return df_analyzed
     
-    def process_excel_file(self, input_file: str, output_file: str, max_workers: int = 10) -> None:
+    def process_excel_file(self, input_file: str, output_file: str, max_workers: int = 10, factor_country: str = "US") -> None:
         print(f"Processing file: {input_file}")
         
         # Extract tickers from Excel file
@@ -237,7 +247,7 @@ class FundamentalDataFetcher:
         
         # Analyze data
         print("Performing financial analysis...")
-        df_analyzed = self.analyze_data(df, separate_data_list)
+        df_analyzed = self.analyze_data(df, separate_data_list, factor_country)
         
         # Clean data before saving to Excel
         print(f"Saving results to: {output_file}")
