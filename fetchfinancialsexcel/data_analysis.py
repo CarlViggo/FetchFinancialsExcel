@@ -517,7 +517,7 @@ def residual_momentum(factor_country, df, separate_data_list):
                 print(f"Warning: {ticker} produced invalid rMOM score")
                 continue
             
-            all_rmom_scores[ticker] = rmom_score
+            all_rmom_scores[ticker] = round(rmom_score, 4)
             
         except Exception as e:
             print(f"Error in residual momentum calculation for {ticker}: {e}")

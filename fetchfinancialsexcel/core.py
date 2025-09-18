@@ -7,7 +7,6 @@ from typing import List, Tuple, Optional, Dict, Any
 from . import company_data_extraction_EODH as eodh
 from . import data_analysis as analyse
 
-
 class FundamentalDataFetcher:
     def __init__(self, api_key: str):
         self.api_key = api_key

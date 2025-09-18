@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "FetchFinancialsExcel"
-version = "0.2.0"
+version = "0.3.0"
 description = "A Python package for fetching financial data from Excel files and performing fundamental analysis"
 readme = "README.md"
 license = {text = "MIT"}
@@ -32,7 +32,10 @@ dependencies = [
     "requests>=2.25.0",
     "pandas>=1.3.0",
     "openpyxl>=3.0.0",
-    "numpy>=1.20.0"
+    "numpy>=1.20.0",
+    "statsmodels>=0.13.0",
+    "scikit-learn>=1.0.0",
+    "pandas-datareader>=0.10.0"
 ]
 requires-python = ">=3.8"
 

@@ -23,7 +23,7 @@ def read_requirements():
 
 setup(
     name="FetchFinancialsExcel",
-    version="0.2.0",
+    version="0.3.0",
     author="Carl Viggo Gravenhorst-Lövenstierne",
     author_email="",
     description="A Python package for fetching financial data from Excel files and performing fundamental analysis",
