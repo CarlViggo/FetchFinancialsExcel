@@ -212,12 +212,12 @@ def test_residual_momentum_functions():
         test_ticker = "AAPL"
         test_price_data = []
         
-        # Create 40 months of mock price data (more than needed 36)
+        # Create 42 months of mock price data (more than needed 40 for lag handling)
         from datetime import datetime, timedelta
         base_date = datetime(2021, 1, 1)
         base_price = 100.0
         
-        for i in range(40 * 30):  # 40 months * 30 days
+        for i in range(42 * 30):  # 42 months * 30 days
             date = base_date + timedelta(days=i)
             price = base_price * (1 + np.random.normal(0, 0.02))  # Random walk
             test_price_data.append({

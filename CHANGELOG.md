@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-01-18
+
+### Fixed
+- **Fama-French Data Synchronization**: Fixed critical timing issue where price data and Fama-French factor data were not synchronized
+- **Lag Handling**: Price excess returns now properly skip the last 2 months to match Fama-French data availability (e.g., both end in July when run in September)
+- **Data Alignment**: Ensures regression analysis uses perfectly aligned time periods for accurate residual momentum calculations
+- **Minimum Data Requirements**: Updated to require 39+ months of price data (37 for calculation + 2 for lag adjustment)
+
+### Technical Details
+- **Synchronized Periods**: Both price excess returns and Fama-French factors now cover identical time periods
+- **Automatic Lag Adjustment**: System automatically accounts for Fama-French reporting lag without user intervention
+- **Improved Accuracy**: Residual momentum calculations now use properly matched datasets for reliable results
+
 ## [0.3.0] - 2025-01-18
 
 ### Added

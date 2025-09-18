@@ -289,7 +289,8 @@ def create_cop_at_noa_composite_score(df):
 ###################### Residual momentum ######################
 
 def calculate_monthly_excess_returns(ticker, price_data, risk_free_rate=1.02):
-    if not price_data or len(price_data) < 38: 
+    # Need at least 40 months: 2 months lag + 37 months for 36 returns  
+    if not price_data or len(price_data) < 40: 
          return {
             ticker: None
         }
@@ -319,22 +320,32 @@ def calculate_monthly_excess_returns(ticker, price_data, risk_free_rate=1.02):
                 'adjusted_close': last_day_entry['adjusted_close']
             })
         
-        # Take the last 37 months (need 37 to calculate 36 returns)
-        last_37_months = monthly_prices[-37:]
-        
-        if len(last_37_months) < 37:
+        # Match Fama-French data period: Skip last 2 months, then take 37 months for 36 returns
+        # This ensures price data aligns with Fama-French data (e.g., both end in July when run in September)
+        if len(monthly_prices) < 39:  # Need at least 39 months (37 for calculation + 2 for lag)
             return {
                 ticker: None
             }
+            
+        # Skip last 2 months to match Fama-French lag, then take 37 months
+        # monthly_prices[:-2] removes last 2 months, [-37:] takes last 37 from remaining
+        available_months = monthly_prices[:-2]  # Remove last 2 months
+        
+        if len(available_months) < 37:
+            return {
+                ticker: None
+            }
+            
+        relevant_months = available_months[-37:]  # Take last 37 months from lag-adjusted data
         
         # Calculate monthly risk-free rate (convert annual to monthly)
         monthly_rf_rate = (risk_free_rate ** (1/12)) - 1
         
-        # Calculate monthly returns and excess returns
+        # Calculate monthly returns and excess returns using relevant_months
         monthly_excess_returns = []
-        for i in range(1, len(last_37_months)):
-            current_price = last_37_months[i]['adjusted_close']
-            previous_price = last_37_months[i-1]['adjusted_close']
+        for i in range(1, len(relevant_months)):
+            current_price = relevant_months[i]['adjusted_close']
+            previous_price = relevant_months[i-1]['adjusted_close']
             
             # Monthly return
             monthly_return = (current_price / previous_price) - 1
@@ -345,8 +356,10 @@ def calculate_monthly_excess_returns(ticker, price_data, risk_free_rate=1.02):
             monthly_excess_returns.append(excess_return)
         
         return {
-            # monthly_excess_returns[0] är avkastningen för 36 månader sedan
-            # monthly_excess_returns[-1] är av kastningen för en månad sedan. 
+            # monthly_excess_returns är nu synkroniserad med Fama-French data
+            # Båda datasets slutar samma månad (t.ex. juli när körning sker i september)
+            # monthly_excess_returns[0] = äldsta månaden (36 månader tillbaka från slutmånad)
+            # monthly_excess_returns[-1] = senaste månaden (samma som sista Fama-French månad)
             f"Excess Returns": {ticker:monthly_excess_returns}
         }
         
@@ -373,7 +386,9 @@ def get_fama_factors(factor_country):
         if ff is None or len(ff) == 0:
             print(f"Warning: No Fama-French data received for {factor_country}")
             return None
-            
+        
+        # Fama-French data is already lagged (e.g., September data goes up to July)
+        # So we just take the last 36 months available
         ff_last_36 = ff.tail(36)
         
         if len(ff_last_36) < 36:
