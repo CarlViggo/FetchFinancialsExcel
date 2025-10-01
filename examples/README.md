@@ -50,4 +50,8 @@ The package will generate an Excel file with comprehensive financial analysis in
 
 - The sample file contains major US stocks that should work with most EODHD subscriptions
 - Processing time depends on your API subscription and number of workers
-- Results will vary based on current market data and availability 
+- Results will vary based on current market data and availability
+
+## License
+
+Examples and the package are provided under the PolyForm Noncommercial License 1.0.0. Commercial use is prohibited. See the repository `LICENSE` file or https://polyformproject.org/licenses/noncommercial/1.0.0/ for details. 

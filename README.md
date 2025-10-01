@@ -2,6 +2,8 @@
 
 A Python package for fetching and analyzing fundamental financial data using the EODHD API in the background. This package allows you to process Excel files containing stock tickers to generate financial analysis reports. It reads ticker symbols from an input Excel sheet, queries the EODHD API for relevant financial data, and outputs a comprehensive analysis report in a new Excel file.
 
+> IMPORTANT: This software is licensed for noncommercial use only under the PolyForm Noncommercial License 1.0.0. Commercial use is prohibited without a separate commercial license. See the `LICENSE` file for details.
+
 ## Features
 
 - **Concurrent Data Fetching**: Efficiently fetches financial data for multiple stocks concurrently.
@@ -131,6 +133,10 @@ Before pushing changes, run the test script to validate functionality:
 ```bash
 python test_package.py
 ```
+
+## License
+
+This project is licensed under the PolyForm Noncommercial License 1.0.0. Commercial use is prohibited. See the `LICENSE` file or visit https://polyformproject.org/licenses/noncommercial/1.0.0/ for full terms. 
 
 ## Author
 
