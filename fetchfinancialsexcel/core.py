@@ -293,7 +293,7 @@ class FundamentalDataFetcher:
     
     # ger det bästa resultatet, ticker från ISIN/namn/ticker
     def resolve_ticker(self, company_name: Optional[str], fallback_ticker: str, isin: Optional[str] = None) -> str:
-        for keyword in (isin, company_name, fallback_ticker):
+        for keyword in (isin, fallback_ticker, company_name):
             if keyword:
                 normalized = keyword.upper()
                 with self._search_cache_lock:

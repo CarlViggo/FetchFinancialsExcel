@@ -64,16 +64,20 @@ def test_excel_processing():
             
             # Test ticker extraction
             fetcher = FundamentalDataFetcher(api_key="test_key")
-            companies, tickers = fetcher.extract_tickers_from_excel(tmp.name)
+            companies, tickers, isin_list = fetcher.extract_tickers_from_excel(tmp.name)
             
             expected_companies = ['APPLE INC', 'MICROSOFT CORPORATION', 'TESLA INC']
             expected_tickers = ['AAPL', 'MSFT', 'TSLA']
             
-            if companies == expected_companies and tickers == expected_tickers:
+            if (
+                companies == expected_companies
+                and tickers == expected_tickers
+                and isin_list == [None, None, None]
+            ):
                 print("Excel processing works correctly")
                 result = True
             else:
-                print(f"Excel processing failed. Got: {companies}, {tickers}")
+                print(f"Excel processing failed. Got: {companies}, {tickers}, {isin_list}")
                 result = False
         
         os.unlink(tmp.name)
@@ -361,7 +365,6 @@ def test_factor_country_parameter():
         print(f"❌ factor_country parameter error: {e}")
         return False
 
-
 def test_complete_workflow():
     print("Testing complete workflow...")
     
@@ -383,12 +386,14 @@ def test_complete_workflow():
             
             # Mock the entire data fetching process
             with patch.object(FundamentalDataFetcher, 'fetch_all_data') as mock_fetch, \
-                 patch.object(FundamentalDataFetcher, 'analyze_data') as mock_analyze:
+                 patch.object(FundamentalDataFetcher, 'analyze_data') as mock_analyze, \
+                 patch.object(FundamentalDataFetcher, 'process_ticker_list_using_search_api') as mock_process_tickers:
                 
                 # Setup mocks
                 mock_df = pd.DataFrame([{"Ticker": "AAPL", "Bolag": "Apple Inc", "Price": 185.64}])
                 mock_separate = [{"Ticker": "AAPL", "volatility": 0.25}]
                 mock_fetch.return_value = (mock_df, mock_separate)
+                mock_process_tickers.return_value = ["AAPL"]
                 mock_analyze.return_value = mock_df
                 
                 # Test workflow with factor_country parameter

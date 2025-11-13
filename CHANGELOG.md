@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-11-13
+
+### Added
+- **ISIN Workflow**: Excel importer now accepts an optional third column with ISIN codes and uses them as the primary lookup key for ticker resolution.
+- **Search Fallbacks**: Rows without a ticker can now still be processed by falling back to ISIN, ticker, and company name in order before creating a blank output row.
+- **Buyback History**: New `buyback_extensive` metric provides 1-, 3-, and 5-year share count change calculations.
+
+### Changed
+- **Ticker Resolution**: Search requests are cached and processed in parallel for faster batch execution while preserving output order.
+- **Excel Import**: Rows are retained even when the ticker column is empty, ensuring companies with only ISIN or name data remain in the run.
+
+### Fixed
+- **Graceful Empty Rows**: When no identifier returns a valid ticker, the pipeline now inserts an empty result row instead of aborting processing.
+
 ## [0.3.1] - 2025-01-18
 
 ### Fixed
