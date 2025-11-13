@@ -1,7 +1,9 @@
 import os
+import requests
 import pandas as pd
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 from typing import List, Tuple, Optional, Dict, Any
 
 from . import company_data_extraction_EODH as eodh
@@ -12,11 +14,14 @@ class FundamentalDataFetcher:
         self.api_key = api_key
         self.current_date = datetime.today().strftime("%Y-%m-%d")
         eodh.API_KEY = api_key
+        self._search_cache: Dict[str, Optional[str]] = {}
+        self._search_cache_lock = Lock()
     
     def extract_tickers_from_excel(self, file_path):
         df = pd.read_excel(file_path, header=None)
         tickers = []
         company_list = []
+        isin_list = []
         
         for index, row in df.iterrows():
             if index < 1 or pd.isna(row[1]):
@@ -26,13 +31,16 @@ class FundamentalDataFetcher:
             ticker = str(row[1]).strip().upper()
             ticker = ''.join(c for c in ticker if c.isalpha() or c.isdigit() or c == '.' or c == '-')
             ticker = ticker.strip('.-')
+            isin = None
+            if len(row) > 2 and not pd.isna(row[2]):
+                isin = str(row[2]).strip().upper()
             
             if ticker:
                 tickers.append(ticker)
-            if company:
-                company_list.append(company)
+                company_list.append(company if company else "")
+                isin_list.append(isin)
                 
-        return company_list, tickers
+        return company_list, tickers, isin_list
     
     def fetch_company_data(self, company_ticker):
         # Fetch fundamental and price data
@@ -232,12 +240,95 @@ class FundamentalDataFetcher:
         df_analyzed["Last Updated"] = self.current_date
         
         return df_analyzed
+
+
+    def search(self, keyword):
+
+        url = f'https://eodhd.com/api/search/{keyword}?limit=1&api_token={self.api_key}&fmt=json'
+        
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status() 
+
+            data = response.json()
+            
+            # kontrollera att svaret är en lista med minst ett element
+            if not isinstance(data, list) or len(data) == 0:
+                print(f"Inget resultat för sökordet: {keyword}")
+                return None
+
+            # Kontrollera att nyckeln 'Code' finns
+            company_code = data[0].get('Code')
+            exchange = data[0].get('Exchange')
+
+            ticker = f"{company_code}.{exchange}"
+
+            if not company_code or not exchange:
+                print(f"Inget fält 'Code' hittades i svaret: {data[0]}")
+                return None
+
+            return ticker
+
+        except requests.exceptions.RequestException as e:
+            print(f"Nätverksfel: {e}")
+            return None
+        except ValueError:
+            print("Fel vid avkodning av JSON.")
+            return None
+        except Exception as e:
+            print(f"Oväntat fel: {e}")
+            return None
+    
+    # ger det bästa resultatet, ticker från ISIN/namn/ticker
+    def resolve_ticker(self, company_name: Optional[str], fallback_ticker: str, isin: Optional[str] = None) -> str:
+        for keyword in (isin, company_name, fallback_ticker):
+            if keyword:
+                normalized = keyword.upper()
+                with self._search_cache_lock:
+                    if normalized in self._search_cache:
+                        cached = self._search_cache[normalized]
+                        if cached:
+                            return cached
+                        continue
+                resolved = self.search(keyword)
+                resolved_upper = resolved.upper() if resolved else None
+                with self._search_cache_lock:
+                    self._search_cache[normalized] = resolved_upper
+                if resolved_upper:
+                    return resolved_upper
+        return fallback_ticker
+    
+    def process_ticker_list_using_search_api(
+        self,
+        ticker_list: List[str],
+        company_list: List[str],
+        isin_list: Optional[List[Optional[str]]] = None,
+        max_workers: int = 8
+    ) -> List[str]:
+        results: List[Optional[str]] = [None] * len(ticker_list)
+
+        def resolve_index(idx: int) -> Tuple[int, str]:
+            ticker = ticker_list[idx]
+            company = company_list[idx] if idx < len(company_list) else None
+            isin = isin_list[idx] if isin_list and idx < len(isin_list) else None
+            resolved = self.resolve_ticker(company, ticker, isin)
+            return idx, resolved
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for idx, resolved in executor.map(resolve_index, range(len(ticker_list))):
+                results[idx] = resolved
+
+        return [res if res is not None else ticker_list[idx] for idx, res in enumerate(results)]
     
     def process_excel_file(self, input_file: str, output_file: str, max_workers: int = 10, factor_country: str = "US") -> None:
         print(f"Processing file: {input_file}")
         
         # Extract tickers from Excel file
-        company_list, ticker_list = self.extract_tickers_from_excel(input_file)
+        company_list, ticker_list, isin_list = self.extract_tickers_from_excel(input_file)
+
+        # använd search på ticker_list
+        ticker_list = self.process_ticker_list_using_search_api(ticker_list, company_list, isin_list, max_workers)
+
         print(f"Found {len(ticker_list)} tickers to process")
         
         # Fetch all data
