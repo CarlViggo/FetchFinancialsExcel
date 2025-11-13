@@ -24,21 +24,29 @@ class FundamentalDataFetcher:
         isin_list = []
         
         for index, row in df.iterrows():
-            if index < 1 or pd.isna(row[1]):
+            if index < 1:
                 continue
                 
-            company = str(row[0]).strip().upper()
-            ticker = str(row[1]).strip().upper()
-            ticker = ''.join(c for c in ticker if c.isalpha() or c.isdigit() or c == '.' or c == '-')
-            ticker = ticker.strip('.-')
+            company = ""
+            if len(row) > 0 and not pd.isna(row[0]):
+                company = str(row[0]).strip().upper()
+
+            ticker = ""
+            if len(row) > 1 and not pd.isna(row[1]):
+                ticker = str(row[1]).strip().upper()
+                ticker = ''.join(c for c in ticker if c.isalpha() or c.isdigit() or c == '.' or c == '-')
+                ticker = ticker.strip('.-')
+
             isin = None
             if len(row) > 2 and not pd.isna(row[2]):
                 isin = str(row[2]).strip().upper()
+
+            if not any([company, ticker, isin]):
+                continue
             
-            if ticker:
-                tickers.append(ticker)
-                company_list.append(company if company else "")
-                isin_list.append(isin)
+            tickers.append(ticker)
+            company_list.append(company)
+            isin_list.append(isin)
                 
         return company_list, tickers, isin_list
     
@@ -94,7 +102,7 @@ class FundamentalDataFetcher:
             print(f"Error fetching FCF data: {e}")
         
         try: 
-            buybacks = eodh.buyback_change_latest(data)
+            buybacks = eodh.buyback_extensive(data)
             print(f"Buyback data fetched for {company_ticker}.")
         except Exception as e:
             print(f"Error fetching buyback data: {e}")
@@ -182,6 +190,10 @@ class FundamentalDataFetcher:
         company_data_separate = {
             'Ticker': company_ticker
         }
+
+        if not company_ticker:
+            data_df = pd.concat([data_df, pd.DataFrame([company_data])], ignore_index=True)
+            return data_df, company_data_separate
 
         indicators, other = self.fetch_company_data(company_ticker)
 
@@ -296,7 +308,7 @@ class FundamentalDataFetcher:
                     self._search_cache[normalized] = resolved_upper
                 if resolved_upper:
                     return resolved_upper
-        return fallback_ticker
+        return ""
     
     def process_ticker_list_using_search_api(
         self,
@@ -305,7 +317,7 @@ class FundamentalDataFetcher:
         isin_list: Optional[List[Optional[str]]] = None,
         max_workers: int = 8
     ) -> List[str]:
-        results: List[Optional[str]] = [None] * len(ticker_list)
+        results: List[str] = [""] * len(ticker_list)
 
         def resolve_index(idx: int) -> Tuple[int, str]:
             ticker = ticker_list[idx]
@@ -316,9 +328,9 @@ class FundamentalDataFetcher:
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             for idx, resolved in executor.map(resolve_index, range(len(ticker_list))):
-                results[idx] = resolved
+                results[idx] = resolved or ""
 
-        return [res if res is not None else ticker_list[idx] for idx, res in enumerate(results)]
+        return results
     
     def process_excel_file(self, input_file: str, output_file: str, max_workers: int = 10, factor_country: str = "US") -> None:
         print(f"Processing file: {input_file}")
